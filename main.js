@@ -100,6 +100,31 @@ async function checkout() {
 }
 
 // --- 6. PANEL ADMIN (UPDATE / DELETE) ---
+function checkLogin() {
+    const passInput = document.getElementById('admin-pass');
+    
+    // Contraseña que elegimos
+    if (passInput.value === "admin123") {
+        // Guardamos la sesión
+        sessionStorage.setItem('isAdmin', 'true');
+        
+        // Ocultamos el overlay visualmente de inmediato
+        const overlay = document.getElementById('login-overlay');
+        if (overlay) {
+            overlay.classList.add('hidden');
+        }
+        
+        // Cargamos los datos de Supabase ahora que tenemos permiso
+        loadProducts();
+        loadOrders();
+        
+        alert("¡Bienvenido, Admin!");
+    } else {
+        alert("Contraseña incorrecta. Inténtalo de nuevo.");
+        passInput.value = ""; // Limpiamos el campo
+    }
+}
+
 async function updateStockManual(id, element) {
     const nuevoStock = parseInt(element.value);
     const { error } = await supabaseClient
@@ -178,3 +203,4 @@ function renderAdminDashboard() {
         </div>
     `).join('');
 }
+
