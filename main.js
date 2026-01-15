@@ -1,12 +1,41 @@
 // --- 1. CONFIGURACIÓN SUPABASE ---
 const supabaseUrl = 'https://tsrbcjj1hpgp0-vtmyeeng.supabase.co'; 
 const supabaseKey = 'sb_publishable_TSrbCJJ1HPGP0-VTMyEeNg_K9plq-mp';
-const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-let products = [];
-let cart = JSON.parse(localStorage.getItem('cart')) || [];
-let sales = [];
-let activeDiscount = 0;
+// Intentar inicializar Supabase de forma segura
+let supabaseClient;
+try {
+    supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+    console.log("Supabase conectado correctamente");
+} catch (e) {
+    console.error("Error crítico: No se pudo cargar la librería de Supabase.", e);
+}
+
+// --- FUNCIÓN DE LOGIN (BLINDADA) ---
+function checkLogin() {
+    console.log("Intentando iniciar sesión..."); // Esto saldrá en la consola (F12)
+    
+    const passInput = document.getElementById('admin-pass');
+    if (!passInput) {
+        alert("Error técnico: No se encuentra el campo de contraseña en el HTML.");
+        return;
+    }
+
+    if (passInput.value === "admin123") {
+        sessionStorage.setItem('isAdmin', 'true');
+        
+        const overlay = document.getElementById('login-overlay');
+        if (overlay) overlay.classList.add('hidden');
+        
+        // Ejecutar carga de datos
+        refreshAdminData();
+        alert("Acceso concedido");
+    } else {
+        alert("Contraseña incorrecta");
+    }
+}
+
+// El resto de tus funciones (refreshAdminData, loadProducts, etc.) siguen igual...
 
 // --- 2. INICIALIZACIÓN ---
 document.addEventListener('DOMContentLoaded', async () => {
@@ -240,3 +269,4 @@ async function handleCreate() {
         refreshAdminData();
     }
 }
+
