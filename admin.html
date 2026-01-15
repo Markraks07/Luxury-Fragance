@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Panel Admin | Luxury Store</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body class="bg-zinc-950 text-white p-6">
+
+    <div id="login-overlay" class="fixed inset-0 bg-black z-[100] flex items-center justify-center">
+        <div class="bg-zinc-900 p-8 rounded-2xl text-center w-80">
+            <h2 class="text-xl font-black mb-4 uppercase tracking-tighter">Acceso Admin</h2>
+            <input type="password" id="admin-pass" placeholder="Contraseña"
+                class="w-full p-3 bg-zinc-800 rounded mb-4 text-center outline-none">
+            <button onclick="checkLogin()" class="bg-yellow-600 w-full py-3 rounded font-bold">ENTRAR</button>
+        </div>
+    </div>
+
+    <div class="max-w-6xl mx-auto">
+        <div class="flex justify-between items-center mb-8">
+            <a href="index.html" class="text-zinc-500 hover:text-white"><i class="fas fa-arrow-left"></i> Tienda</a>
+            <h1 class="text-2xl font-black uppercase italic">Dashboard de Control</h1>
+            <button onclick="sessionStorage.clear(); location.reload();"
+                class="text-red-500 text-xs underline">Salir</button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div class="bg-zinc-900 p-4 rounded-2xl border border-white/5">
+                <p class="text-[10px] text-zinc-500 font-bold">TOTAL DINERO</p>
+                <h2 id="stat-money" class="text-2xl font-black text-green-500 font-mono">$0</h2>
+            </div>
+            <div class="bg-zinc-900 p-4 rounded-2xl border border-white/5">
+                <p class="text-[10px] text-zinc-500 font-bold">PEDIDOS</p>
+                <h2 id="stat-orders" class="text-2xl font-black font-mono">0</h2>
+            </div>
+            <div class="bg-zinc-900 p-4 rounded-2xl border border-white/5">
+                <p class="text-[10px] text-zinc-500 font-bold text-red-400">STOCK BAJO</p>
+                <h2 id="stat-prods" class="text-2xl font-black font-mono">0</h2>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="bg-zinc-900 p-6 rounded-3xl border border-white/10 h-fit">
+                <h3 class="font-bold mb-4 uppercase italic">Nuevo Producto</h3>
+                <div class="space-y-3">
+                    <input type="text" id="p-name" placeholder="Nombre"
+                        class="w-full bg-zinc-800 p-3 rounded-lg text-sm outline-none">
+                    <div class="flex gap-2">
+                        <input type="number" id="p-price" placeholder="Precio ($)"
+                            class="w-full bg-zinc-800 p-3 rounded-lg text-sm outline-none">
+                        <input type="number" id="p-stock" placeholder="Stock"
+                            class="w-full bg-zinc-800 p-3 rounded-lg text-sm outline-none">
+                    </div>
+                    <select id="p-cat" class="w-full bg-zinc-800 p-3 rounded-lg text-sm">
+                        <option value="hombre">Hombre</option>
+                        <option value="mujer">Mujer</option>
+                        <option value="unisex">Unisex</option>
+                    </select>
+                    <select id="p-scent" class="w-full bg-zinc-800 p-3 rounded-lg text-sm">
+                        <option value="fuerte">Amaderado/Fuerte</option>
+                        <option value="dulce">Floral/Dulce</option>
+                        <option value="citrico">Cítrico/Fresco</option>
+                    </select>
+                    <input type="file" id="p-img-file" class="text-xs text-zinc-500">
+                    <button onclick="handleCreate()"
+                        class="bg-white text-black w-full py-4 rounded-2xl font-black hover:bg-yellow-500 transition mt-4">PUBLICAR</button>
+                </div>
+            </div>
+
+            <div class="lg:col-span-2 space-y-6">
+                <div class="bg-zinc-900 p-6 rounded-3xl border border-white/10">
+                    <h3 class="font-bold mb-4 uppercase italic">Inventario Actual</h3>
+                    <div id="admin-list" class="max-h-[300px] overflow-y-auto pr-2"></div>
+                </div>
+                <div class="bg-zinc-900 p-6 rounded-3xl border border-white/5">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-sm font-black uppercase gold-text italic">Control de Pedidos</h3>
+                        <button onclick="clearPaidOrders()"
+                            class="text-[9px] bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white px-3 py-1 rounded-full border border-red-500/20 transition-all font-bold uppercase tracking-widest">
+                            <i class="fas fa-broom mr-1"></i> Limpiar Pagados
+                        </button>
+                    </div>
+                    <div id="orders-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="main.js"></script>
+</body>
+
+</html>

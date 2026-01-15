@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tu Carrito | Luxury Store</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-zinc-950 text-white p-4 md:p-10">
+
+    <div class="max-w-3xl mx-auto">
+        <div class="flex justify-between items-center mb-10">
+            <h1 class="text-3xl font-black italic gold-text">MI CARRITO</h1>
+            <a href="index.html" class="text-zinc-400 hover:text-white transition flex items-center gap-2">
+                <i class="fas fa-shopping-bag"></i> Seguir comprando
+            </a>
+        </div>
+
+        <div id="cart-items" class="space-y-4 mb-10">
+            </div>
+
+        <div class="bg-zinc-900 p-8 rounded-3xl border border-white/10 shadow-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <span class="text-zinc-400 uppercase tracking-widest text-sm">Total a pagar:</span>
+                <span id="total-price" class="text-4xl font-black text-yellow-500 font-mono">$0</span>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button onclick="checkout()" class="bg-white text-black py-4 rounded-2xl font-black uppercase hover:bg-yellow-500 transition">
+                    Finalizar Compra
+                </button>
+                <a href="index.html" class="flex items-center justify-center border border-white/20 py-4 rounded-2xl font-bold hover:bg-white/5 transition">
+                    Añadir más perfumes
+                </a>
+            </div>
+            <p class="text-center text-[10px] text-zinc-600 mt-6 uppercase tracking-widest">Pago seguro garantizado por Luxury Fragance</p>
+        </div>
+    </div>
+
+    <script src="main.js"></script>
+</body>
+</html>
