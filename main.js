@@ -105,13 +105,31 @@ function searchProduct() {
 }
 
 function addToCart(id) {
-    const p = products.find(i => i.id === id);
-    if (p && p.stock > 0) {
-        cart.push({...p});
-        localStorage.setItem('cart', JSON.stringify(cart));
-        updateCartCount();
-        alert(`🛒 ${p.name} añadido`);
+    // Buscamos el producto en la lista 'products' que cargamos de Supabase
+    // Usamos == en lugar de === por si el ID viene como string o número
+    const p = products.find(i => i.id == id);
+
+    if (!p) {
+        console.error("Producto no encontrado. ID buscado:", id);
+        alert("Error: No se pudo encontrar el producto.");
+        return;
     }
+
+    if (p.stock <= 0) {
+        alert("¡Lo sentimos! Este perfume se ha agotado.");
+        return;
+    }
+
+    // Añadimos una copia al carrito
+    cart.push({...p});
+    
+    // Guardamos en el almacenamiento local del cliente
+    localStorage.setItem('cart', JSON.stringify(cart));
+    
+    // Actualizamos el numerito del icono del carrito
+    updateCartCount();
+    
+    alert(`✅ ${p.name} añadido al carrito`);
 }
 
 function updateCartCount() {
@@ -316,4 +334,5 @@ async function handleCreate() {
         alert("Ocurrió un error inesperado al publicar.");
     }
 }
+
 
