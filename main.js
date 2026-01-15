@@ -1,6 +1,6 @@
 // --- 1. CONFIGURACIÓN SUPABASE ---
 const supabaseUrl = 'https://lccffohqkkhdgkrkmqis.supabase.co'; 
-const supabaseKey = 'sb_publishable_TSrbCJJ1HPGP0-VTMyEeNg_K9plq-mp';
+const supabaseKey = 'sb_publishable_nfpZ6ElXyGUS1n5165D4RQ_qwM76ObP';
 const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
 // --- 2. VARIABLES GLOBALES (Estado de la App) ---
