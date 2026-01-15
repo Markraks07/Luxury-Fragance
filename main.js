@@ -1,56 +1,27 @@
 // --- 1. CONFIGURACIÓN SUPABASE ---
-const supabaseUrl = 'https://lccffohqkkhdgkrkmqis.supabase.co'; 
+const supabaseUrl = 'https://tsrbcjj1hpgp0-vtmyeeng.supabase.co'; 
 const supabaseKey = 'sb_publishable_TSrbCJJ1HPGP0-VTMyEeNg_K9plq-mp';
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-// Intentar inicializar Supabase de forma segura
-let supabaseClient;
-try {
-    supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
-    console.log("Supabase conectado correctamente");
-} catch (e) {
-    console.error("Error crítico: No se pudo cargar la librería de Supabase.", e);
-}
-
-// --- FUNCIÓN DE LOGIN (BLINDADA) ---
-function checkLogin() {
-    console.log("Intentando iniciar sesión..."); // Esto saldrá en la consola (F12)
-    
-    const passInput = document.getElementById('admin-pass');
-    if (!passInput) {
-        alert("Error técnico: No se encuentra el campo de contraseña en el HTML.");
-        return;
-    }
-
-    if (passInput.value === "admin123") {
-        sessionStorage.setItem('isAdmin', 'true');
-        
-        const overlay = document.getElementById('login-overlay');
-        if (overlay) overlay.classList.add('hidden');
-        
-        // Ejecutar carga de datos
-        refreshAdminData();
-        alert("Acceso concedido");
-    } else {
-        alert("Contraseña incorrecta");
-    }
-}
-
-// El resto de tus funciones (refreshAdminData, loadProducts, etc.) siguen igual...
+let products = [];
+let cart = JSON.parse(localStorage.getItem('cart')) || [];
+let sales = [];
+let activeDiscount = 0;
 
 // --- 2. INICIALIZACIÓN ---
 document.addEventListener('DOMContentLoaded', async () => {
-    // Si estamos en la tienda (index)
+    console.log("🚀 Sistema Luxury iniciado");
+    
+    // Carga inicial según la página
     if (document.getElementById('catalog')) {
         await loadProducts();
         renderCatalog(products);
     }
     
-    // Si estamos en el admin
     if (document.getElementById('admin-list')) {
         checkAdminAccess();
     }
 
-    // Si estamos en el carrito
     if (document.getElementById('cart-items')) {
         renderCart();
     }
@@ -61,8 +32,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 // --- 3. CARGA DE DATOS (READ) ---
 async function loadProducts() {
     const { data, error } = await supabaseClient.from('productos').select('*');
-    if (error) return console.error("Error Supabase:", error);
+    if (error) {
+        console.error("Error cargando productos:", error);
+        return [];
+    }
     products = data;
+    console.log("📦 Productos cargados:", products.length);
     return data;
 }
 
@@ -71,65 +46,63 @@ async function loadOrders() {
         .from('pedidos')
         .select('*')
         .order('created_at', { ascending: false });
-    if (error) return console.error("Error Supabase:", error);
+    if (error) {
+        console.error("Error cargando pedidos:", error);
+        return [];
+    }
     sales = data;
     return data;
 }
 
-// --- 4. FUNCIONES DE TIENDA (INDEX) ---
+// --- 4. TIENDA Y CARRITO ---
 function renderCatalog(list) {
     const container = document.getElementById('catalog');
     if (!container) return;
+    
+    if (list.length === 0) {
+        container.innerHTML = `<p class="col-span-full text-center py-20 text-zinc-500">No hay perfumes disponibles. Ve al Admin para añadir uno.</p>`;
+        return;
+    }
+
     container.innerHTML = list.map(p => `
-        <div class="bg-zinc-900 border border-white/5 p-4 rounded-3xl hover:border-yellow-500/50 transition-all group relative">
-            ${p.stock <= 0 ? '<div class="absolute inset-0 bg-black/70 z-10 flex items-center justify-center rounded-3xl font-black text-red-500 uppercase rotate-12 border-2 border-red-500">Sin Stock</div>' : ''}
+        <div class="bg-zinc-900 border border-white/5 p-5 rounded-3xl hover:border-yellow-500/50 transition-all group relative">
+            ${p.stock <= 0 ? '<div class="absolute inset-0 bg-black/70 z-10 flex items-center justify-center rounded-3xl font-black text-red-500 uppercase rotate-12 border-2 border-red-500 m-2">Sin Stock</div>' : ''}
             <div class="relative overflow-hidden rounded-2xl mb-4">
-                <img src="${p.img}" class="h-64 w-full object-cover group-hover:scale-110 transition duration-500">
+                <img src="${p.img}" class="h-72 w-full object-cover group-hover:scale-110 transition duration-500">
             </div>
-            <h3 class="font-bold text-lg uppercase tracking-tighter gold-text">${p.name}</h3>
-            <p class="text-[10px] text-zinc-500 mb-3 uppercase italic">${p.scent}</p>
+            <h3 class="font-bold text-xl uppercase tracking-tighter gold-text">${p.name}</h3>
+            <p class="text-[10px] text-zinc-500 mb-4 uppercase tracking-widest">${p.scent} | ${p.cat}</p>
             <div class="flex justify-between items-center">
-                <span class="text-yellow-500 font-black text-2xl font-mono">$${p.price}</span>
-                <button onclick="addToCart(${p.id})" ${p.stock <= 0 ? 'disabled' : ''} class="bg-white text-black px-6 py-2 rounded-xl font-bold text-xs hover:bg-yellow-500 transition uppercase">
-                    ${p.stock <= 0 ? 'Agotado' : 'Añadir'}
+                <span class="text-white font-black text-2xl font-mono">$${p.price}</span>
+                <button onclick="addToCart('${p.id}')" ${p.stock <= 0 ? 'disabled' : ''} class="bg-white text-black px-6 py-2 rounded-xl font-bold text-xs hover:bg-yellow-500 transition uppercase shadow-lg shadow-white/5">
+                    Añadir
                 </button>
             </div>
         </div>
     `).join('');
 }
 
-function searchProduct() {
-    const term = document.getElementById('search-input').value.toLowerCase();
-    const filtered = products.filter(p => p.name.toLowerCase().includes(term));
-    renderCatalog(filtered);
-}
-
 function addToCart(id) {
-    // Buscamos el producto en la lista 'products' que cargamos de Supabase
-    // Usamos == en lugar de === por si el ID viene como string o número
-    const p = products.find(i => i.id == id);
+    // Buscamos comparando como strings para evitar errores de tipo
+    const p = products.find(item => String(item.id) === String(id));
 
-    if (!p) {
-        console.error("Producto no encontrado. ID buscado:", id);
-        alert("Error: No se pudo encontrar el producto.");
-        return;
+    if (p && p.stock > 0) {
+        cart.push({...p});
+        localStorage.setItem('cart', JSON.stringify(cart));
+        updateCartCount();
+        
+        // Efecto visual rápido
+        const btn = event.target;
+        const originalText = btn.innerText;
+        btn.innerText = "¡AÑADIDO!";
+        btn.classList.replace('bg-white', 'bg-green-500');
+        setTimeout(() => {
+            btn.innerText = originalText;
+            btn.classList.replace('bg-green-500', 'bg-white');
+        }, 800);
+    } else {
+        alert("Producto no disponible");
     }
-
-    if (p.stock <= 0) {
-        alert("¡Lo sentimos! Este perfume se ha agotado.");
-        return;
-    }
-
-    // Añadimos una copia al carrito
-    cart.push({...p});
-    
-    // Guardamos en el almacenamiento local del cliente
-    localStorage.setItem('cart', JSON.stringify(cart));
-    
-    // Actualizamos el numerito del icono del carrito
-    updateCartCount();
-    
-    alert(`✅ ${p.name} añadido al carrito`);
 }
 
 function updateCartCount() {
@@ -137,7 +110,6 @@ function updateCartCount() {
     if (el) el.innerText = cart.length;
 }
 
-// --- 5. CARRITO (CARRITO.HTML) ---
 function renderCart() {
     const container = document.getElementById('cart-items');
     const totalEl = document.getElementById('total-price');
@@ -147,11 +119,19 @@ function renderCart() {
     let finalTotal = total * (1 - activeDiscount);
 
     container.innerHTML = cart.map((item, index) => `
-        <div class="flex items-center justify-between bg-zinc-900 p-4 rounded-2xl mb-2 border border-white/5">
-            <span class="font-bold text-sm uppercase">${item.name}</span>
-            <button onclick="removeFromCart(${index})" class="text-red-500"><i class="fas fa-trash"></i></button>
+        <div class="flex items-center justify-between bg-zinc-900 p-4 rounded-2xl mb-3 border border-white/5">
+            <div class="flex items-center gap-4">
+                <img src="${item.img}" class="w-14 h-14 rounded-xl object-cover">
+                <div>
+                    <h4 class="font-bold text-sm uppercase">${item.name}</h4>
+                    <p class="text-xs text-yellow-500">$${item.price}</p>
+                </div>
+            </div>
+            <button onclick="removeFromCart(${index})" class="text-zinc-500 hover:text-red-500 transition px-2">
+                <i class="fas fa-trash-alt"></i>
+            </button>
         </div>
-    `).join('') || '<p class="text-center py-10 text-zinc-500">El carrito está vacío</p>';
+    `).join('') || '<p class="text-center py-20 text-zinc-600 uppercase text-xs tracking-widest">Carrito vacío</p>';
 
     if (totalEl) totalEl.innerText = `$${finalTotal.toFixed(2)}`;
 }
@@ -168,7 +148,6 @@ async function checkout() {
     const subtotal = cart.reduce((a, b) => a + Number(b.price), 0);
     const totalFinal = subtotal * (1 - activeDiscount);
     
-    // Guardar en Supabase
     const { error } = await supabaseClient.from('pedidos').insert([{ 
         total: totalFinal, 
         status: "Pendiente",
@@ -176,9 +155,9 @@ async function checkout() {
     }]);
 
     if (!error) {
-        const tel = "34600000000"; // TELÉFONO DEL PRIMO
-        let lista = cart.map(p => `• ${p.name}`).join('%0A');
-        let msg = `*NUEVO PEDIDO*%0A${lista}%0A*Total: $${totalFinal.toFixed(2)}*`;
+        const tel = "34600000000"; // CAMBIAR POR EL REAL
+        let lista = cart.map(p => `• ${p.name} ($${p.price})`).join('%0A');
+        let msg = `*NUEVO PEDIDO LUXURY*%0A--------------------------%0A${lista}%0A--------------------------%0A*TOTAL: $${totalFinal.toFixed(2)}*%0A%0A_Por favor, envíeme los datos de pago._`;
         
         cart = [];
         localStorage.removeItem('cart');
@@ -187,11 +166,34 @@ async function checkout() {
     }
 }
 
-// --- 6. ADMIN (ADMIN.HTML) ---
+// --- 5. BUSCADOR Y RECOMENDADOR ---
+function searchProduct() {
+    const term = document.getElementById('search-input').value.toLowerCase();
+    const filtered = products.filter(p => p.name.toLowerCase().includes(term));
+    renderCatalog(filtered);
+}
+
+function startRecommender() {
+    const gen = prompt("¿Para quién es el perfume? (hombre / mujer / unisex)");
+    if(!gen) return;
+    const aroma = prompt("¿Qué aroma prefieres? (fuerte / dulce / citrico)");
+    if(!aroma) return;
+    
+    const match = products.find(p => p.cat.toLowerCase() === gen.toLowerCase() && p.scent.toLowerCase() === aroma.toLowerCase() && p.stock > 0);
+    
+    if(match) {
+        alert("✨ La IA Luxury sugiere: " + match.name);
+        renderCatalog([match]);
+    } else {
+        alert("No hay una coincidencia exacta, pero te mostramos toda nuestra colección.");
+        renderCatalog(products);
+    }
+}
+
+// --- 6. GESTIÓN ADMIN ---
 function checkAdminAccess() {
     const isAdmin = sessionStorage.getItem('isAdmin');
     const overlay = document.getElementById('login-overlay');
-    
     if (isAdmin === 'true') {
         if (overlay) overlay.classList.add('hidden');
         refreshAdminData();
@@ -205,7 +207,7 @@ function checkLogin() {
         document.getElementById('login-overlay').classList.add('hidden');
         refreshAdminData();
     } else {
-        alert("Acceso Denegado");
+        alert("Contraseña incorrecta");
     }
 }
 
@@ -221,19 +223,26 @@ function renderAdminDashboard() {
     if (!list || !orders) return;
 
     list.innerHTML = products.map(p => `
-        <div class="bg-zinc-800 p-4 rounded-2xl flex justify-between items-center mb-2 border border-white/5">
-            <span class="text-xs font-bold uppercase">${p.name}</span>
+        <div class="bg-zinc-800 p-4 rounded-2xl flex justify-between items-center mb-3 border border-white/5">
             <div class="flex items-center gap-3">
-                <input type="number" value="${p.stock}" onchange="updateStockManual(${p.id}, this)" class="w-16 bg-zinc-900 border border-white/10 rounded-lg text-center text-xs py-1">
-                <button onclick="deleteProduct(${p.id})" class="text-red-500"><i class="fas fa-trash"></i></button>
+                <img src="${p.img}" class="w-10 h-10 rounded-lg object-cover">
+                <span class="text-xs font-bold uppercase tracking-tighter">${p.name}</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <input type="number" value="${p.stock}" onchange="updateStockManual('${p.id}', this)" class="w-16 bg-zinc-900 border border-white/10 rounded-lg text-center text-xs py-1 outline-none focus:border-yellow-500">
+                <button onclick="deleteProduct('${p.id}')" class="text-red-500 hover:scale-110 transition"><i class="fas fa-trash"></i></button>
             </div>
         </div>
     `).join('');
 
     orders.innerHTML = sales.map(s => `
-        <div class="bg-zinc-900 p-3 rounded-xl mb-2 flex justify-between border-l-4 ${s.status === 'Pagado' ? 'border-green-500' : 'border-orange-500'}">
-            <div class="text-[10px]"><b>ID: ${s.id}</b> - ${s.status}<br>$${s.total}</div>
-            <button onclick="nextStatus(${s.id}, '${s.status}')" class="bg-zinc-800 px-2 rounded text-[10px] font-bold uppercase">Estado</button>
+        <div class="bg-zinc-900 p-4 rounded-2xl mb-2 flex justify-between items-center border-l-4 ${s.status === 'Pagado' ? 'border-green-500' : 'border-orange-500'}">
+            <div class="text-[10px]">
+                <b class="text-white uppercase">ID: ${s.id}</b> <span class="mx-2">|</span> <b>${s.status}</b><br>
+                <span class="text-zinc-500">${s.resumen || 'Pedido sin detalles'}</span><br>
+                <span class="text-yellow-500 font-bold">$${s.total}</span>
+            </div>
+            <button onclick="nextStatus('${s.id}', '${s.status}')" class="bg-zinc-800 px-3 py-1 rounded-lg text-[10px] font-bold uppercase hover:bg-zinc-700 transition">Estado</button>
         </div>
     `).join('');
 }
@@ -254,85 +263,40 @@ async function nextStatus(id, current) {
 }
 
 async function deleteProduct(id) {
-    if(confirm("¿Eliminar producto de la nube?")) {
+    if(confirm("¿Eliminar perfume definitivamente?")) {
         await supabaseClient.from('productos').delete().eq('id', id);
         refreshAdminData();
     }
 }
 
 async function clearPaidOrders() {
-    if(confirm("¿Borrar definitivamente todos los pedidos PAGADOS?")) {
+    if(confirm("¿Limpiar historial de pedidos pagados?")) {
         await supabaseClient.from('pedidos').delete().eq('status', 'Pagado');
         refreshAdminData();
     }
 }
 
 async function handleCreate() {
-    console.log("Iniciando creación de producto...");
+    const name = document.getElementById('p-name').value;
+    const price = document.getElementById('p-price').value;
+    const stock = document.getElementById('p-stock').value;
+    const cat = document.getElementById('p-cat').value;
+    const scent = document.getElementById('p-scent').value;
+    const fileEl = document.getElementById('p-img-file');
 
-    try {
-        // 1. Capturar elementos del DOM
-        const nameEl = document.getElementById('p-name');
-        const priceEl = document.getElementById('p-price');
-        const stockEl = document.getElementById('p-stock');
-        const catEl = document.getElementById('p-cat');
-        const scentEl = document.getElementById('p-scent');
-        const fileEl = document.getElementById('p-img-file');
+    if(!name || !price || !stock) return alert("Rellena los campos obligatorios");
 
-        // 2. Validar que los campos existan y tengan valor
-        if (!nameEl.value || !priceEl.value || !stockEl.value) {
-            alert("Por favor, rellena nombre, precio y stock.");
-            return;
-        }
+    let img = "https://images.unsplash.com/photo-1594035910387-fea47794261f?w=400";
+    if (fileEl && fileEl.files[0]) {
+        const reader = new FileReader();
+        img = await new Promise(r => { reader.onload = () => r(reader.result); reader.readAsDataURL(fileEl.files[0]); });
+    }
 
-        let imgBase64 = "https://images.unsplash.com/photo-1594035910387-fea47794261f?w=400"; // Imagen por defecto
-
-        // 3. Procesar imagen si el usuario subió una
-        if (fileEl && fileEl.files[0]) {
-            console.log("Leyendo archivo de imagen...");
-            imgBase64 = await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = (e) => reject(e);
-                reader.readAsDataURL(fileEl.files[0]);
-            });
-        }
-
-        // 4. Enviar a Supabase
-        console.log("Enviando a Supabase...");
-        const { data, error } = await supabaseClient.from('productos').insert([
-            { 
-                name: nameEl.value, 
-                price: parseFloat(priceEl.value), 
-                stock: parseInt(stockEl.value), 
-                cat: catEl.value, 
-                scent: scentEl.value, 
-                img: imgBase64 
-            }
-        ]);
-
-        if (error) {
-            console.error("Error de Supabase:", error);
-            alert("Error al guardar: " + error.message);
-            return;
-        }
-
-        // 5. Éxito
-        alert("✨ ¡Producto publicado con éxito!");
-        
-        // Limpiar formulario
-        nameEl.value = "";
-        priceEl.value = "";
-        stockEl.value = "";
-        if (fileEl) fileEl.value = "";
-
-        // Refrescar la lista de productos
-        await refreshAdminData();
-
-    } catch (err) {
-        console.error("Error crítico en handleCreate:", err);
-        alert("Ocurrió un error inesperado al publicar.");
+    const { error } = await supabaseClient.from('productos').insert([{ name, price: Number(price), stock: Number(stock), cat, scent, img }]);
+    if (!error) {
+        alert("✅ Perfume publicado");
+        refreshAdminData();
+    } else {
+        alert("Error al publicar: " + error.message);
     }
 }
-
-
