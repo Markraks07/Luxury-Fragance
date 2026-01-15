@@ -250,23 +250,69 @@ async function clearPaidOrders() {
 }
 
 async function handleCreate() {
-    const name = document.getElementById('p-name').value;
-    const price = document.getElementById('p-price').value;
-    const stock = document.getElementById('p-stock').value;
-    const cat = document.getElementById('p-cat').value;
-    const scent = document.getElementById('p-scent').value;
-    const imgFile = document.getElementById('p-img-file').files[0];
+    console.log("Iniciando creación de producto...");
 
-    let img = "https://images.unsplash.com/photo-1594035910387-fea47794261f?w=400";
-    if (imgFile) {
-        const reader = new FileReader();
-        img = await new Promise(r => { reader.onload = () => r(reader.result); reader.readAsDataURL(imgFile); });
-    }
+    try {
+        // 1. Capturar elementos del DOM
+        const nameEl = document.getElementById('p-name');
+        const priceEl = document.getElementById('p-price');
+        const stockEl = document.getElementById('p-stock');
+        const catEl = document.getElementById('p-cat');
+        const scentEl = document.getElementById('p-scent');
+        const fileEl = document.getElementById('p-img-file');
 
-    const { error } = await supabaseClient.from('productos').insert([{ name, price, stock, cat, scent, img }]);
-    if (!error) {
-        alert("Producto Publicado");
-        refreshAdminData();
+        // 2. Validar que los campos existan y tengan valor
+        if (!nameEl.value || !priceEl.value || !stockEl.value) {
+            alert("Por favor, rellena nombre, precio y stock.");
+            return;
+        }
+
+        let imgBase64 = "https://images.unsplash.com/photo-1594035910387-fea47794261f?w=400"; // Imagen por defecto
+
+        // 3. Procesar imagen si el usuario subió una
+        if (fileEl && fileEl.files[0]) {
+            console.log("Leyendo archivo de imagen...");
+            imgBase64 = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = (e) => reject(e);
+                reader.readAsDataURL(fileEl.files[0]);
+            });
+        }
+
+        // 4. Enviar a Supabase
+        console.log("Enviando a Supabase...");
+        const { data, error } = await supabaseClient.from('productos').insert([
+            { 
+                name: nameEl.value, 
+                price: parseFloat(priceEl.value), 
+                stock: parseInt(stockEl.value), 
+                cat: catEl.value, 
+                scent: scentEl.value, 
+                img: imgBase64 
+            }
+        ]);
+
+        if (error) {
+            console.error("Error de Supabase:", error);
+            alert("Error al guardar: " + error.message);
+            return;
+        }
+
+        // 5. Éxito
+        alert("✨ ¡Producto publicado con éxito!");
+        
+        // Limpiar formulario
+        nameEl.value = "";
+        priceEl.value = "";
+        stockEl.value = "";
+        if (fileEl) fileEl.value = "";
+
+        // Refrescar la lista de productos
+        await refreshAdminData();
+
+    } catch (err) {
+        console.error("Error crítico en handleCreate:", err);
+        alert("Ocurrió un error inesperado al publicar.");
     }
 }
-
