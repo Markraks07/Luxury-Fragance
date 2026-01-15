@@ -1,5 +1,5 @@
 // --- 1. CONFIGURACIÓN SUPABASE ---
-const supabaseUrl = 'https://tsrbcjj1hpgp0-vtmyeeng.supabase.co'; 
+const supabaseUrl = 'https://lccffohqkkhdgkrkmqis.supabase.co'; 
 const supabaseKey = 'sb_publishable_TSrbCJJ1HPGP0-VTMyEeNg_K9plq-mp';
 const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
@@ -165,7 +165,7 @@ async function checkout() {
     }]);
 
     if (!error) {
-        const tel = "34600000000"; // TELÉFONO DEL DUEÑO
+        const tel = "34627248528"; // TELÉFONO DEL DUEÑO
         let lista = cart.map(p => `• ${p.name}`).join('%0A');
         let msg = `*NUEVO PEDIDO*%0A${lista}%0A*TOTAL: $${total.toFixed(2)}*`;
         cart = [];
@@ -275,3 +275,4 @@ async function clearPaidOrders() {
         refreshAdminData();
     }
 }
+
