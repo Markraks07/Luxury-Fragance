@@ -1,5 +1,5 @@
 // --- 1. CONFIGURACIÓN SUPABASE ---
-const supabaseUrl = 'https://tsrbcjj1hpgp0-vtmyeeng.supabase.co'; 
+const supabaseUrl = 'https://lccffohqkkhdgkrkmqis.supabase.co'; 
 const supabaseKey = 'sb_publishable_TSrbCJJ1HPGP0-VTMyEeNg_K9plq-mp';
 
 // Intentar inicializar Supabase de forma segura
@@ -316,3 +316,4 @@ async function handleCreate() {
         alert("Ocurrió un error inesperado al publicar.");
     }
 }
+
