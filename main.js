@@ -165,9 +165,9 @@ async function checkout() {
     }]);
 
     if (!error) {
-        const tel = "34627248528"; // TELÉFONO DEL DUEÑO
-        let lista = cart.map(p => `• ${p.name}`).join('%0A');
-        let msg = `*NUEVO PEDIDO*%0A${lista}%0A*TOTAL: $${total.toFixed(2)}*`;
+        const tel = "34635399055"; // TELÉFONO DEL DUEÑO
+        let lista = cart.map(p => `• ${p.name} ($${p.price})`).join('%0A');
+        let msg = `*NUEVO PEDIDO LUXURY*%0A--------------------------%0A${lista}%0A--------------------------%0A*TOTAL: $${totalFinal.toFixed(2)}*%0A%0A_Por favor, envíeme los datos de pago._`;
         cart = [];
         localStorage.removeItem('cart');
         window.open(`https://wa.me/${tel}?text=${msg}`, '_blank');
@@ -275,4 +275,5 @@ async function clearPaidOrders() {
         refreshAdminData();
     }
 }
+
 
