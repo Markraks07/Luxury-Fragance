@@ -144,23 +144,57 @@ function removeFromCart(index) {
 
 async function checkout() {
     if (cart.length === 0) return alert("El carrito está vacío");
-    const total = cart.reduce((a, b) => a + Number(b.price), 0) * (1 - activeDiscount);
-    
-    const { error } = await supabaseClient.from('pedidos').insert([{ 
-        total: total, 
-        status: "Pendiente",
-        resumen: cart.map(p => p.name).join(', ')
-    }]);
 
-    if (!error) {
-        const tel = "34635399055"; // NÚMERO DE TU PRIMO ACTUALIZADO
-        let msg = `*PEDIDO LUXURY*%0A-----------------%0A${cart.map(p => `• ${p.name}`).join('%0A')}%0A-----------------%0A*TOTAL: $${total.toFixed(2)}*`;
+    let subtotal = cart.reduce((a, b) => a + Number(b.price), 0);
+    let totalFinal = subtotal * (1 - activeDiscount);
+    const resumenPedido = cart.map(p => p.name).join(', ');
+
+    try {
+        // 1. DESCONTAR STOCK EN SUPABASE (Producto por producto)
+        for (const item of cart) {
+            // Buscamos el stock actual del producto antes de restar
+            const { data: pActual } = await supabaseClient
+                .from('productos')
+                .select('stock')
+                .eq('id', item.id)
+                .single();
+
+            if (pActual && pActual.stock > 0) {
+                const nuevoStock = pActual.stock - 1;
+                await supabaseClient
+                    .from('productos')
+                    .update({ stock: nuevoStock })
+                    .eq('id', item.id);
+            }
+        }
+
+        // 2. GUARDAR EL PEDIDO EN LA TABLA DE PEDIDOS
+        const { error } = await supabaseClient.from('pedidos').insert([{ 
+            total: totalFinal, 
+            status: "Pendiente",
+            resumen: resumenPedido
+        }]);
+
+        if (error) throw error;
+
+        // 3. ENVIAR WHATSAPP AL PRIMO
+        const tel = "34635399055"; 
+        let listaMsg = cart.map(p => `• ${p.name}`).join('%0A');
+        let couponMsg = activeDiscount > 0 ? `%0A*Cupón aplicado:* -${(activeDiscount * 100).toFixed(0)}%` : '';
+        
+        let msg = `*NUEVO PEDIDO LUXURY*%0A--------------------------%0A${listaMsg}${couponMsg}%0A--------------------------%0A*TOTAL FINAL: $${totalFinal.toFixed(2)}*`;
+        
+        // 4. LIMPIAR TODO
         cart = [];
         localStorage.removeItem('cart');
+        
+        alert("✨ Stock actualizado y pedido enviado");
         window.open(`https://wa.me/${tel}?text=${msg}`, '_blank');
         window.location.href = "index.html";
-    } else {
-        alert("Error al guardar pedido: " + error.message);
+
+    } catch (err) {
+        console.error("Error en el proceso de compra:", err);
+        alert("Hubo un error al descontar el stock: " + err.message);
     }
 }
 
@@ -258,4 +292,5 @@ async function clearPaidOrders() {
         refreshAdminData();
     }
 }
+
 
