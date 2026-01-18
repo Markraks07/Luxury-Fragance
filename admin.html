@@ -15,7 +15,7 @@
 
     <div id="login-overlay" class="fixed inset-0 bg-black z-[100] flex items-center justify-center p-6">
         <div class="max-w-sm w-full text-center">
-            <h2 class="gold-text text-3xl font-black mb-6 uppercase italic tracking-tighter">Luxury Admin</h2>
+            <h2 class="gold-text text-3xl font-black mb-6 uppercase italic">Luxury Admin</h2>
             <input type="password" id="admin-pass" placeholder="CONTRASEÑA" class="w-full bg-zinc-900 border border-white/10 p-4 rounded-2xl mb-4 text-center outline-none focus:border-yellow-500">
             <button onclick="checkLogin()" class="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-yellow-500 transition">ENTRAR</button>
         </div>
@@ -33,9 +33,21 @@
                 <input type="text" id="p-name" placeholder="NOMBRE" class="bg-black p-3 rounded-xl border border-white/10 text-xs outline-none">
                 <input type="number" id="p-price" placeholder="PRECIO" class="bg-black p-3 rounded-xl border border-white/10 text-xs outline-none">
                 <input type="number" id="p-stock" placeholder="STOCK INICIAL" class="bg-black p-3 rounded-xl border border-white/10 text-xs outline-none">
+                
+                <select id="p-cat" class="bg-black p-3 rounded-xl border border-white/10 text-xs outline-none text-zinc-400">
+                    <option value="hombre">HOMBRE</option>
+                    <option value="mujer">MUJER</option>
+                    <option value="unisex">UNISEX</option>
+                </select>
+                <select id="p-scent" class="bg-black p-3 rounded-xl border border-white/10 text-xs outline-none text-zinc-400">
+                    <option value="fuerte">FUERTE</option>
+                    <option value="dulce">DULCE</option>
+                    <option value="citrico">CÍTRICO</option>
+                </select>
+
                 <input type="file" id="p-img-file" class="bg-black p-3 rounded-xl border border-white/10 text-[10px] outline-none">
             </div>
-            <button onclick="handleCreate()" class="w-full mt-4 bg-yellow-600 text-black font-bold py-3 rounded-xl text-xs uppercase hover:bg-yellow-500 transition">Publicar en la Nube</button>
+            <button onclick="handleCreate()" class="w-full mt-4 bg-yellow-600 text-black font-bold py-3 rounded-xl text-xs uppercase hover:bg-yellow-500 transition">Publicar Producto</button>
         </div>
 
         <div class="grid md:grid-cols-2 gap-10">
@@ -44,8 +56,12 @@
                 <div id="admin-list" class="space-y-2">
                     </div>
             </div>
+
             <div>
-                <h2 class="text-xs font-bold text-zinc-500 uppercase mb-4 tracking-widest">Pedidos Recientes</h2>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xs font-bold text-zinc-500 uppercase tracking-widest">Pedidos</h2>
+                    <button onclick="clearPaidOrders()" class="text-[9px] text-red-500 uppercase font-bold hover:underline">Limpiar Pagados</button>
+                </div>
                 <div id="orders-list" class="space-y-2">
                     </div>
             </div>
