@@ -87,4 +87,77 @@ input::-webkit-inner-spin-button {
 
 input[type=number] {
     -moz-appearance: textfield;
+
+}
+
+
+/* --- RESPONSIVE DESIGN --- */
+
+/* Tablets (Pantallas menores a 1024px) */
+@media (max-width: 1024px) {
+    .max-w-4xl, .max-w-2xl {
+        padding: 0 20px;
+    }
+    #catalog {
+        grid-template-columns: repeat(2, 1fr); /* 2 columnas en tablet */
+        gap: 15px;
+    }
+}
+
+/* Móviles Grandes (Pantallas menores a 768px) */
+@media (max-width: 768px) {
+    #catalog {
+        grid-template-columns: repeat(2, 1fr); /* Mantenemos 2 columnas para que no sea infinito hacia abajo */
+        gap: 10px;
+    }
+    
+    h1 { font-size: 1.5rem !important; }
+    
+    .gold-text {
+        font-size: 1.1rem;
+    }
+
+    /* Ajuste de imágenes para que no ocupen toda la pantalla */
+    #catalog img {
+        height: 200px;
+    }
+
+    /* Botones más grandes para dedos en móvil */
+    button {
+        padding: 12px 10px !important;
+        font-size: 10px !important;
+    }
+}
+
+/* Móviles Pequeños (Pantallas menores a 480px) */
+@media (max-width: 480px) {
+    #catalog {
+        grid-template-columns: repeat(1, 1fr); /* 1 columna en móviles muy pequeños si prefieres, o dejar 2 */
+    }
+
+    /* Resumen de compra del carrito más compacto */
+    .bg-zinc-900.p-8 {
+        padding: 20px !important;
+    }
+
+    #total-price {
+        font-size: 1.5rem !important;
+    }
+
+    /* Ajuste del login de admin para que quepa bien el teclado */
+    #login-overlay .max-w-sm {
+        padding: 20px;
+    }
+}
+
+/* Utilidad para evitar que las imágenes se deformen */
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Mejora de scroll suave en móviles */
+html {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
 }
