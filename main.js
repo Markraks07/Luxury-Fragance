@@ -221,18 +221,50 @@ async function handleCreate() {
     const name = document.getElementById('p-name').value;
     const price = document.getElementById('p-price').value;
     const stock = document.getElementById('p-stock').value;
+    const cat = document.getElementById('p-cat').value;
+    const scent = document.getElementById('p-scent').value;
     const imgFile = document.getElementById('p-img-file').files[0];
 
-    if(!name || !price || !stock) return alert("Rellena los campos obligatorios");
-
-    let img = "https://images.unsplash.com/photo-1594035910387-fea47794261f?w=400";
-    if (imgFile) {
-        const reader = new FileReader();
-        img = await new Promise(r => { reader.onload = () => r(reader.result); reader.readAsDataURL(imgFile); });
+    if(!name || !price || !stock) {
+        alert("Por favor, rellena Nombre, Precio y Stock.");
+        return;
     }
 
-    const { error } = await supabaseClient.from('productos').insert([{ name, price: Number(price), stock: Number(stock), img }]);
-    if (!error) { alert("✨ Perfume publicado"); refreshAdminData(); }
+    let img = "https://images.unsplash.com/photo-1594035910387-fea47794261f?w=400";
+    
+    try {
+        if (imgFile) {
+            const reader = new FileReader();
+            img = await new Promise((resolve) => {
+                reader.onload = () => resolve(reader.result);
+                reader.readAsDataURL(imgFile);
+            });
+        }
+
+        const { error } = await supabaseClient.from('productos').insert([
+            { 
+                name: name, 
+                price: Number(price), 
+                stock: Number(stock), 
+                cat: cat, 
+                scent: scent, 
+                img: img 
+            }
+        ]);
+
+        if (error) throw error;
+
+        alert("✨ ¡Producto publicado con éxito!");
+        refreshAdminData();
+        
+        // Limpiar campos
+        document.getElementById('p-name').value = "";
+        document.getElementById('p-price').value = "";
+        document.getElementById('p-stock').value = "";
+    } catch (err) {
+        console.error("Error al publicar:", err);
+        alert("Error de Supabase: " + err.message);
+    }
 }
 
 async function nextStatus(id, current) {
@@ -247,3 +279,4 @@ async function deleteProduct(id) {
         refreshAdminData();
     }
 }
+
