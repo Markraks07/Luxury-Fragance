@@ -114,7 +114,7 @@ async function checkout() {
 
     if (!error) {
         // 2. Preparar WhatsApp
-        const tel = "34600000000"; // PON AQUÍ TU TELÉFONO REAL
+        const tel = "34635399055"; // PON AQUÍ TU TELÉFONO REAL
         let msg = `*NUEVO PEDIDO LUXURY*%0A--------------------------%0A${cart.map(p => `• ${p.name}`).join('%0A')}%0A--------------------------%0A*TOTAL: $${total.toFixed(2)}*`;
         
         // 3. Limpiar carrito
@@ -132,7 +132,7 @@ async function checkout() {
 // --- 7. ADMIN ---
 function checkLogin() {
     const pass = document.getElementById('admin-pass').value;
-    if (pass === "admin123") {
+    if (pass === "Deluxe_0101") {
         sessionStorage.setItem('isAdmin', 'true');
         document.getElementById('login-overlay').classList.add('hidden');
         refreshAdminData();
@@ -180,3 +180,4 @@ async function handleCreate() {
     const { error } = await supabaseClient.from('productos').insert([{ name, price: Number(price), stock: Number(stock), img }]);
     if (!error) { alert("Publicado"); refreshAdminData(); }
 }
+
