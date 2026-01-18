@@ -7,16 +7,18 @@ const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 let products = [];
 let sales = [];
 let cart = JSON.parse(localStorage.getItem('cart')) || [];
-let activeDiscount = 0; // 0.10 sería un 10%
+let activeDiscount = 0;
 
 // --- 3. INICIALIZACIÓN ---
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log("🚀 Conectado a Luxury Supabase");
+    
     if (document.getElementById('catalog')) {
         await loadProducts();
         renderCatalog(products);
     }
     if (document.getElementById('admin-list')) {
-        refreshAdminData();
+        checkAdminAccess();
     }
     if (document.getElementById('cart-items')) {
         renderCart();
@@ -26,39 +28,44 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // --- 4. CARGA DE DATOS ---
 async function loadProducts() {
-    const { data, error } = await supabaseClient.from('productos').select('*');
-    if (error) return console.error(error);
-    products = data || [];
+    try {
+        const { data, error } = await supabaseClient.from('productos').select('*');
+        if (error) throw error;
+        products = data || [];
+    } catch (err) {
+        console.error("Error cargando productos:", err.message);
+    }
 }
 
 async function loadOrders() {
-    const { data, error } = await supabaseClient.from('pedidos').select('*').order('created_at', { ascending: false });
-    if (error) return console.error(error);
-    sales = data || [];
+    try {
+        const { data, error } = await supabaseClient.from('pedidos').select('*').order('created_at', { ascending: false });
+        if (error) throw error;
+        sales = data || [];
+    } catch (err) {
+        console.error("Error cargando pedidos:", err.message);
+    }
 }
 
-// --- 5. TIENDA (INDEX) ---
+// --- 5. TIENDA Y CATÁLOGO ---
 function renderCatalog(list) {
     const container = document.getElementById('catalog');
     if (!container) return;
     
     container.innerHTML = list.map(p => `
-        <div class="bg-zinc-900 p-5 rounded-3xl relative border border-white/5 overflow-hidden">
-            ${p.stock <= 0 ? '<div class="absolute inset-0 bg-black/80 z-20 flex items-center justify-center font-bold text-red-500 uppercase rotate-12 border-2 border-red-500 m-4 text-center p-2">AGOTADO</div>' : ''}
-            
-            <img src="${p.img}" class="h-64 w-full object-cover rounded-2xl mb-4 shadow-lg">
+        <div class="bg-zinc-900 border border-white/5 p-5 rounded-3xl group relative overflow-hidden">
+            ${p.stock <= 0 ? '<div class="absolute inset-0 bg-black/80 z-20 flex items-center justify-center font-black text-red-500 uppercase rotate-12 border-2 border-red-500 m-4">Agotado</div>' : ''}
+            <img src="${p.img}" class="h-64 w-full object-cover rounded-2xl mb-4 group-hover:scale-105 transition duration-500">
             <h3 class="font-bold text-lg uppercase gold-text">${p.name}</h3>
-            <p class="text-[10px] text-zinc-500 mb-2 uppercase italic tracking-widest">${p.scent} | Stock: ${p.stock}</p>
-            
+            <p class="text-[10px] text-zinc-500 mb-4 uppercase italic">Stock: ${p.stock}</p>
             <div class="flex justify-between items-center">
                 <span class="text-white font-black text-2xl font-mono">$${p.price}</span>
-                <button onclick="addToCart('${p.id}')" ${p.stock <= 0 ? 'disabled' : ''} 
-                    class="bg-white text-black px-6 py-2 rounded-xl font-bold text-xs hover:bg-yellow-500 disabled:opacity-30 transition uppercase tracking-tighter">
-                    ${p.stock <= 0 ? 'Sin Stock' : 'Añadir'}
+                <button onclick="addToCart('${p.id}')" ${p.stock <= 0 ? 'disabled' : ''} class="bg-white text-black px-6 py-2 rounded-xl font-bold text-xs hover:bg-yellow-500 transition uppercase shadow-lg">
+                    Añadir
                 </button>
             </div>
         </div>
-    `).join('');
+    `).join('') || '<p class="col-span-full text-center text-zinc-500 py-10 uppercase text-xs">No hay productos disponibles.</p>';
 }
 
 function addToCart(id) {
@@ -67,7 +74,7 @@ function addToCart(id) {
         cart.push({...p});
         localStorage.setItem('cart', JSON.stringify(cart));
         updateCartCount();
-        alert(`✅ ${p.name} añadido`);
+        alert(`✅ ${p.name} añadido al carrito`);
     }
 }
 
@@ -76,52 +83,35 @@ function updateCartCount() {
     if (el) el.innerText = cart.length;
 }
 
-// --- 6. CARRITO Y CUPONES ---
+// --- 6. CARRITO Y CHECKOUT ---
 function renderCart() {
     const container = document.getElementById('cart-items');
     const totalEl = document.getElementById('total-price');
     if (!container) return;
 
     let subtotal = cart.reduce((acc, item) => acc + Number(item.price), 0);
-    let ahorro = subtotal * activeDiscount;
-    let totalFinal = subtotal - ahorro;
+    let totalFinal = subtotal * (1 - activeDiscount);
 
     container.innerHTML = cart.map((item, index) => `
-        <div class="flex items-center justify-between bg-zinc-900 p-4 rounded-2xl mb-3 border border-white/5 shadow-inner">
-            <div class="flex items-center gap-3">
+        <div class="flex items-center justify-between bg-zinc-900 p-4 rounded-2xl mb-3 border border-white/5">
+            <div class="flex items-center gap-4">
                 <img src="${item.img}" class="w-12 h-12 rounded-lg object-cover">
                 <span class="font-bold text-sm uppercase">${item.name}</span>
             </div>
-            <button onclick="removeFromCart(${index})" class="text-red-500 hover:scale-110 transition"><i class="fas fa-trash"></i></button>
+            <button onclick="removeFromCart(${index})" class="text-red-500"><i class="fas fa-trash"></i></button>
         </div>
-    `).join('') || '<p class="text-center py-10 text-zinc-600 uppercase text-xs tracking-widest">Carrito Vacío</p>';
+    `).join('') || '<p class="text-center py-10 text-zinc-600 uppercase text-xs">CARRITO VACÍO</p>';
 
-    // Mostrar el precio con descuento si hay cupón
-    if (totalEl) {
-        totalEl.innerHTML = activeDiscount > 0 
-            ? `<span class="text-zinc-500 line-through text-lg mr-2">$${subtotal.toFixed(2)}</span> <span class="text-green-500">$${totalFinal.toFixed(2)}</span>`
-            : `$${totalFinal.toFixed(2)}`;
-    }
+    if (totalEl) totalEl.innerText = `$${totalFinal.toFixed(2)}`;
 }
 
 function applyCoupon() {
-    const codeInput = document.getElementById('coupon-input');
-    if (!codeInput) return;
-    
-    const code = codeInput.value.toUpperCase().trim();
-    
-    // Configura aquí tus cupones
+    const code = document.getElementById('coupon-input').value.toUpperCase();
     if (code === "LUXURY10") {
         activeDiscount = 0.10;
-        alert("✨ Cupón del 10% aplicado");
-    } else if (code === "PRIMO20") {
-        activeDiscount = 0.20;
-        alert("✨ Cupón del 20% aplicado");
-    } else {
-        alert("❌ Cupón no válido");
-        activeDiscount = 0;
-    }
-    renderCart();
+        alert("✨ Cupón 10% aplicado");
+        renderCart();
+    } else { alert("❌ Cupón inválido"); }
 }
 
 function removeFromCart(index) {
@@ -133,42 +123,40 @@ function removeFromCart(index) {
 
 async function checkout() {
     if (cart.length === 0) return alert("El carrito está vacío");
-
-    let subtotal = cart.reduce((a, b) => a + Number(b.price), 0);
-    let totalFinal = subtotal * (1 - activeDiscount);
-    const resumenPedido = cart.map(p => p.name).join(', ');
-
-    // 1. Guardar pedido en Supabase
+    const total = cart.reduce((a, b) => a + Number(b.price), 0) * (1 - activeDiscount);
+    
     const { error } = await supabaseClient.from('pedidos').insert([{ 
-        total: totalFinal, 
+        total: total, 
         status: "Pendiente",
-        resumen: resumenPedido
+        resumen: cart.map(p => p.name).join(', ')
     }]);
 
     if (!error) {
-        const tel = "34635399055"; // TELÉFONO DEL DUEÑO
-        let listaMsg = cart.map(p => `• ${p.name}`).join('%0A');
-        let couponMsg = activeDiscount > 0 ? `%0A*Cupón aplicado:* -${activeDiscount * 100}%` : '';
-        
-        let msg = `*NUEVO PEDIDO LUXURY*%0A--------------------------%0A${listaMsg}${couponMsg}%0A--------------------------%0A*TOTAL FINAL: $${totalFinal.toFixed(2)}*`;
-        
+        const tel = "34635399055"; // NÚMERO DE TU PRIMO ACTUALIZADO
+        let msg = `*PEDIDO LUXURY*%0A-----------------%0A${cart.map(p => `• ${p.name}`).join('%0A')}%0A-----------------%0A*TOTAL: $${total.toFixed(2)}*`;
         cart = [];
         localStorage.removeItem('cart');
         window.open(`https://wa.me/${tel}?text=${msg}`, '_blank');
         window.location.href = "index.html";
     } else {
-        alert("Error al procesar: " + error.message);
+        alert("Error al guardar pedido: " + error.message);
     }
 }
 
-// --- 7. ADMIN Y GESTIÓN ---
+// --- 7. PANEL ADMIN ---
+function checkAdminAccess() {
+    if (sessionStorage.getItem('isAdmin') === 'true') {
+        document.getElementById('login-overlay')?.classList.add('hidden');
+        refreshAdminData();
+    }
+}
+
 function checkLogin() {
     const pass = document.getElementById('admin-pass').value;
-    if (pass === "Deluxe_0101") {
+    if (pass === "Deluxe_0101") { // CONTRASEÑA ACTUALIZADA
         sessionStorage.setItem('isAdmin', 'true');
-        document.getElementById('login-overlay').classList.add('hidden');
-        refreshAdminData();
-    } else { alert("Contraseña incorrecta"); }
+        location.reload();
+    } else { alert("❌ Contraseña incorrecta"); }
 }
 
 async function refreshAdminData() {
@@ -184,86 +172,56 @@ function renderAdminDashboard() {
     if (list) {
         list.innerHTML = products.map(p => `
             <div class="bg-zinc-800 p-4 rounded-2xl flex justify-between items-center mb-2 border border-white/5">
-                <span class="text-xs font-bold uppercase">${p.name}</span>
+                <span class="text-xs font-bold uppercase">${p.name} (Stock: ${p.stock})</span>
                 <div class="flex items-center gap-3">
-                    <span class="text-[9px] text-zinc-500 uppercase">Stock:</span>
-                    <input type="number" value="${p.stock}" onchange="updateStockManual('${p.id}', this)" class="w-14 bg-zinc-900 rounded-lg text-center text-xs py-1 border border-white/10 outline-none focus:border-yellow-500">
-                    <button onclick="deleteProduct('${p.id}')" class="text-red-500 hover:text-red-400 transition"><i class="fas fa-trash"></i></button>
+                    <input type="number" value="${p.stock}" onchange="updateStockManual('${p.id}', this)" class="w-16 bg-zinc-900 rounded text-center text-xs py-1 border border-white/10 outline-none">
+                    <button onclick="deleteProduct('${p.id}')" class="text-red-500"><i class="fas fa-trash"></i></button>
                 </div>
             </div>
         `).join('');
     }
-
     if (orders) {
         orders.innerHTML = sales.map(s => `
-            <div class="bg-zinc-900 p-4 rounded-2xl mb-2 flex justify-between items-center border-l-4 ${s.status === 'Pagado' ? 'border-green-500' : 'border-orange-500'}">
+            <div class="bg-zinc-900 p-4 rounded-xl mb-2 flex justify-between border-l-4 ${s.status === 'Pagado' ? 'border-green-500' : 'border-orange-500'}">
                 <div class="text-[10px]">
-                    <b class="uppercase">ID: ${s.id}</b> - <span class="gold-text">${s.status}</span><br>
+                    <b class="uppercase">ID: ${s.id.slice(0,8)}</b> - ${s.status}<br>
                     <span class="text-zinc-500">${s.resumen}</span><br>
                     <span class="text-white font-bold">$${s.total}</span>
                 </div>
-                <button onclick="nextStatus('${s.id}', '${s.status}')" class="bg-zinc-800 px-3 py-1 rounded-lg text-[10px] uppercase font-bold hover:bg-zinc-700 transition">Estado</button>
+                <button onclick="nextStatus('${s.id}', '${s.status}')" class="bg-zinc-800 px-3 py-1 rounded-lg text-[10px] uppercase font-bold">Estado</button>
             </div>
         `).join('');
     }
 }
 
 async function updateStockManual(id, element) {
-    const val = parseInt(element.value);
-    const { error } = await supabaseClient.from('productos').update({ stock: val }).eq('id', id);
-    if (!error) {
-        element.classList.add('border-green-500');
-        setTimeout(() => element.classList.remove('border-green-500'), 500);
-    }
+    await supabaseClient.from('productos').update({ stock: parseInt(element.value) }).eq('id', id);
 }
 
 async function handleCreate() {
     const name = document.getElementById('p-name').value;
     const price = document.getElementById('p-price').value;
     const stock = document.getElementById('p-stock').value;
-    const cat = document.getElementById('p-cat').value;
-    const scent = document.getElementById('p-scent').value;
-    const imgFile = document.getElementById('p-img-file').files[0];
+    const cat = document.getElementById('p-cat')?.value || "unisex";
+    const scent = document.getElementById('p-scent')?.value || "dulce";
+    const file = document.getElementById('p-img-file').files[0];
 
-    if(!name || !price || !stock) {
-        alert("Por favor, rellena Nombre, Precio y Stock.");
-        return;
-    }
+    if(!name || !price || !stock) return alert("Rellena todos los campos");
 
     let img = "https://images.unsplash.com/photo-1594035910387-fea47794261f?w=400";
-    
-    try {
-        if (imgFile) {
-            const reader = new FileReader();
-            img = await new Promise((resolve) => {
-                reader.onload = () => resolve(reader.result);
-                reader.readAsDataURL(imgFile);
-            });
-        }
+    if (file) {
+        const reader = new FileReader();
+        img = await new Promise(r => { reader.onload = () => r(reader.result); reader.readAsDataURL(file); });
+    }
 
-        const { error } = await supabaseClient.from('productos').insert([
-            { 
-                name: name, 
-                price: Number(price), 
-                stock: Number(stock), 
-                cat: cat, 
-                scent: scent, 
-                img: img 
-            }
-        ]);
+    const { error } = await supabaseClient.from('productos').insert([{ name, price: Number(price), stock: Number(stock), cat, scent, img }]);
+    if (!error) { alert("✨ Producto publicado"); refreshAdminData(); }
+}
 
-        if (error) throw error;
-
-        alert("✨ ¡Producto publicado con éxito!");
+async function deleteProduct(id) {
+    if(confirm("¿Borrar producto permanentemente?")) {
+        await supabaseClient.from('productos').delete().eq('id', id);
         refreshAdminData();
-        
-        // Limpiar campos
-        document.getElementById('p-name').value = "";
-        document.getElementById('p-price').value = "";
-        document.getElementById('p-stock').value = "";
-    } catch (err) {
-        console.error("Error al publicar:", err);
-        alert("Error de Supabase: " + err.message);
     }
 }
 
@@ -273,11 +231,9 @@ async function nextStatus(id, current) {
     refreshAdminData();
 }
 
-async function deleteProduct(id) {
-    if(confirm("¿Seguro que quieres borrar este producto de la nube?")) {
-        await supabaseClient.from('productos').delete().eq('id', id);
+async function clearPaidOrders() {
+    if(confirm("¿Limpiar historial de pedidos pagados?")) {
+        await supabaseClient.from('pedidos').delete().eq('status', 'Pagado');
         refreshAdminData();
     }
 }
-
-
