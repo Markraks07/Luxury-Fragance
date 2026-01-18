@@ -106,12 +106,33 @@ function renderCart() {
 }
 
 function applyCoupon() {
-    const code = document.getElementById('coupon-input').value.toUpperCase();
-    if (code === "LUXURY10") {
-        activeDiscount = 0.10;
-        alert("✨ Cupón 10% aplicado");
-        renderCart();
-    } else { alert("❌ Cupón inválido"); }
+    const codeInput = document.getElementById('coupon-input');
+    if (!codeInput) return;
+    
+    const code = codeInput.value.toUpperCase().trim();
+    
+    // Objeto con todos los cupones y sus porcentajes
+    const cupones = {
+        "LUXURY10": 0.10,
+        "PRIMO20": 0.20,
+        "DELUXE05": 0.05,
+        "VIP30": 0.30,
+        "GOLDEN15": 0.15,
+        "SUMMER25": 0.25,
+        "BLACKFRIDAY": 0.40,
+        "FRAGANCE12": 0.12,
+        "LANZAMIENTO": 0.18
+    };
+
+    if (cupones[code]) {
+        activeDiscount = cupones[code];
+        alert(`✨ Cupón aplicado: ${(activeDiscount * 100)}% de descuento`);
+    } else {
+        alert("❌ Cupón no válido");
+        activeDiscount = 0;
+    }
+    
+    renderCart(); // Para que el precio se actualice en pantalla
 }
 
 function removeFromCart(index) {
@@ -237,3 +258,4 @@ async function clearPaidOrders() {
         refreshAdminData();
     }
 }
+
