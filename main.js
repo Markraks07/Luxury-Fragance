@@ -1,5 +1,5 @@
 // --- 1. CONFIGURACIÓN SUPABASE ---
-const supabaseUrl = 'https://tsrbcjj1hpgp0-vtmyeeng.supabase.co'; 
+const supabaseUrl = 'https://lccffohqkkhdgkrkmqis.supabase.co'; 
 const supabaseKey = 'sb_publishable_TSrbCJJ1HPGP0-VTMyEeNg_K9plq-mp';
 const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
@@ -279,4 +279,5 @@ async function deleteProduct(id) {
         refreshAdminData();
     }
 }
+
 
