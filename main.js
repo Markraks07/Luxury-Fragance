@@ -68,14 +68,64 @@ function renderCatalog(list) {
     `).join('') || '<p class="col-span-full text-center text-zinc-500 py-10 uppercase text-xs">No hay productos disponibles.</p>';
 }
 
-function addToCart(id) {
+// 1. AÑADIR: Resta stock en Supabase al instante
+async function addToCart(id) {
     const p = products.find(item => String(item.id) === String(id));
+    
     if (p && p.stock > 0) {
-        cart.push({...p});
-        localStorage.setItem('cart', JSON.stringify(cart));
-        updateCartCount();
-        alert(`✅ ${p.name} añadido al carrito`);
+        const nuevoStock = p.stock - 1;
+        const { error } = await supabaseClient.from('productos').update({ stock: nuevoStock }).eq('id', id);
+
+        if (!error) {
+            p.stock = nuevoStock;
+            cart.push({...p, cartId: Date.now()}); 
+            localStorage.setItem('cart', JSON.stringify(cart));
+            renderCatalog(products); // Actualiza visualmente el "Agotado"
+            updateCartCount();
+            alert(`✅ ${p.name} reservado en el carrito`);
+        }
+    } else {
+        alert("❌ Sin stock disponible");
     }
+}
+
+// 2. QUITAR: Devuelve el stock a Supabase si se borra del carrito
+async function removeFromCart(index) {
+    const item = cart[index];
+    const { data: pActual } = await supabaseClient.from('productos').select('stock').eq('id', item.id).single();
+    
+    if (pActual) {
+        await supabaseClient.from('productos').update({ stock: pActual.stock + 1 }).eq('id', item.id);
+    }
+
+    cart.splice(index, 1);
+    localStorage.setItem('cart', JSON.stringify(cart));
+    
+    await loadProducts(); // Recarga la lista actualizada
+    renderCatalog(products);
+    renderCart();
+    updateCartCount();
+}
+
+// 3. CATALOGO: Muestra el cartel de AGOTADO y bloquea el botón
+function renderCatalog(list) {
+    const container = document.getElementById('catalog');
+    if (!container) return;
+    
+    container.innerHTML = list.map(p => `
+        <div class="bg-zinc-900 p-5 rounded-3xl relative overflow-hidden border border-white/5">
+            ${p.stock <= 0 ? `<div class="absolute inset-0 bg-black/80 z-20 flex items-center justify-center font-black text-red-500 uppercase rotate-12 border-2 border-red-500 m-6">AGOTADO</div>` : ''}
+            <img src="${p.img}" class="h-64 w-full object-cover rounded-2xl mb-4">
+            <h3 class="font-bold uppercase gold-text">${p.name}</h3>
+            <p class="text-[10px] text-zinc-500 mb-4 uppercase">Stock: ${p.stock}</p>
+            <div class="flex justify-between items-center">
+                <span class="text-white font-black text-2xl">$${p.price}</span>
+                <button onclick="addToCart('${p.id}')" ${p.stock <= 0 ? 'disabled' : ''} class="bg-white text-black px-6 py-2 rounded-xl font-bold text-xs disabled:opacity-20">
+                    ${p.stock <= 0 ? 'SIN STOCK' : 'AÑADIR'}
+                </button>
+            </div>
+        </div>
+    `).join('');
 }
 
 function updateCartCount() {
@@ -292,5 +342,6 @@ async function clearPaidOrders() {
         refreshAdminData();
     }
 }
+
 
 
