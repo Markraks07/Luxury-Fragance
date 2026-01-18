@@ -37,14 +37,30 @@ async function loadProducts() {
     }
 }
 
-async function loadOrders() {
-    try {
-        const { data, error } = await supabaseClient.from('pedidos').select('*').order('created_at', { ascending: false });
-        if (error) throw error;
-        sales = data || [];
-    } catch (err) {
-        console.error("Error cargando pedidos:", err.message);
+async function loadOrdersAdmin() {
+    const { data: pedidos, error } = await supabaseClient
+        .from('pedidos')
+        .select('*')
+        .order('fecha', { ascending: false }); // Los más nuevos primero
+
+    const container = document.getElementById('admin-orders-list'); // Asegúrate que este ID existe en tu HTML
+    if (!container) return;
+
+    if (error) {
+        container.innerHTML = "<p>Error al cargar pedidos</p>";
+        return;
     }
+
+    container.innerHTML = pedidos.map(ped => `
+        <div class="bg-zinc-800 p-4 rounded-2xl mb-3 border-l-4 ${ped.status === 'Completado' ? 'border-green-500' : 'border-yellow-500'}">
+            <div class="flex justify-between">
+                <span class="text-[10px] text-zinc-500">${new Date(ped.fecha).toLocaleString()}</span>
+                <span class="font-bold text-white">$${ped.total.toFixed(2)}</span>
+            </div>
+            <p class="text-xs mt-2 text-zinc-300">${ped.resumen}</p>
+            <p class="text-[10px] mt-1 uppercase font-bold ${ped.status === 'Completado' ? 'text-green-500' : 'text-yellow-500'}">${ped.status}</p>
+        </div>
+    `).join('') || '<p class="text-zinc-500 text-center py-4">No hay pedidos aún</p>';
 }
 
 // --- 5. TIENDA Y CATÁLOGO ---
@@ -200,51 +216,35 @@ async function checkout() {
     const resumenPedido = cart.map(p => p.name).join(', ');
 
     try {
-        // 1. DESCONTAR STOCK EN SUPABASE (Producto por producto)
-        for (const item of cart) {
-            // Buscamos el stock actual del producto antes de restar
-            const { data: pActual } = await supabaseClient
-                .from('productos')
-                .select('stock')
-                .eq('id', item.id)
-                .single();
-
-            if (pActual && pActual.stock > 0) {
-                const nuevoStock = pActual.stock - 1;
-                await supabaseClient
-                    .from('productos')
-                    .update({ stock: nuevoStock })
-                    .eq('id', item.id);
-            }
-        }
-
-        // 2. GUARDAR EL PEDIDO EN LA TABLA DE PEDIDOS
+        // 1. GUARDAR EL PEDIDO EN SUPABASE
+        // Importante: No descontamos stock aquí porque ya lo hicimos al "Añadir"
         const { error } = await supabaseClient.from('pedidos').insert([{ 
             total: totalFinal, 
             status: "Pendiente",
-            resumen: resumenPedido
+            resumen: resumenPedido,
+            created_at: new Date().toISOString() // Para que el admin los vea ordenados
         }]);
 
         if (error) throw error;
 
-        // 3. ENVIAR WHATSAPP AL PRIMO
+        // 2. ENVIAR WHATSAPP AL PRIMO
         const tel = "34635399055"; 
         let listaMsg = cart.map(p => `• ${p.name}`).join('%0A');
         let couponMsg = activeDiscount > 0 ? `%0A*Cupón aplicado:* -${(activeDiscount * 100).toFixed(0)}%` : '';
         
         let msg = `*NUEVO PEDIDO LUXURY*%0A--------------------------%0A${listaMsg}${couponMsg}%0A--------------------------%0A*TOTAL FINAL: $${totalFinal.toFixed(2)}*`;
         
-        // 4. LIMPIAR TODO
+        // 3. LIMPIAR LOCALSTORAGE (El stock ya se bajó en la DB al añadir)
         cart = [];
         localStorage.removeItem('cart');
         
-        alert("✨ Stock actualizado y pedido enviado");
+        alert("✨ Pedido realizado con éxito");
         window.open(`https://wa.me/${tel}?text=${msg}`, '_blank');
         window.location.href = "index.html";
 
     } catch (err) {
-        console.error("Error en el proceso de compra:", err);
-        alert("Hubo un error al descontar el stock: " + err.message);
+        console.error("Error al registrar el pedido:", err);
+        alert("No se pudo guardar el pedido en el panel: " + err.message);
     }
 }
 
@@ -342,6 +342,7 @@ async function clearPaidOrders() {
         refreshAdminData();
     }
 }
+
 
 
 
