@@ -185,7 +185,7 @@ function checkAdminAccess() {
 
 function checkLogin() {
     const pass = document.getElementById('admin-pass').value;
-    if (pass === "admin123") {
+    if (pass === "Deluxe_0101") {
         sessionStorage.setItem('isAdmin', 'true');
         location.reload();
     } else { alert("Acceso Denegado"); }
@@ -275,5 +275,6 @@ async function clearPaidOrders() {
         refreshAdminData();
     }
 }
+
 
 
